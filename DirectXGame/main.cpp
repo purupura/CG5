@@ -4,6 +4,7 @@
 #include <Windows.h>
 //#include <d3dcompiler.h>
 #include <cassert>
+#include "RootSignature.h"
 
 using namespace KamataEngine;
 
@@ -24,23 +25,8 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
 	ID3D12GraphicsCommandList* commandList = dxCommon->GetCommandList();
 
 	//RootSignature作成-------------------------------------------
-	//構造体にデータを用意する
-	D3D12_ROOT_SIGNATURE_DESC descriptionRootSignature{};
-	descriptionRootSignature.Flags = 
-		D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
-	ID3D10Blob* signatureBlob = nullptr;
-	ID3D10Blob* errorBlog = nullptr;
-	HRESULT hr = D3D12SerializeRootSignature(&descriptionRootSignature,
-		D3D_ROOT_SIGNATURE_VERSION_1,&signatureBlob,&errorBlog);
-	if (FAILED(hr)) {
-		DebugText::GetInstance()->ConsolePrintf(reinterpret_cast<char*>(errorBlog->GetBufferPointer()));
-		assert(false);
-	}
-
-	//バイナリをもとに生成
-	ID3D12RootSignature* rootSignature = nullptr;
-	hr = dxCommon->GetDevice()->CreateRootSignature(0, signatureBlob->GetBufferPointer(), signatureBlob->GetBufferSize(), IID_PPV_ARGS(&rootSignature));
-	assert(SUCCEEDED(hr));
+	RootSignature rs;
+	rs.Create();
 
 	//InputLayout
 	D3D12_INPUT_ELEMENT_DESC inputElementDescs[1] = {};
@@ -76,7 +62,7 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
 
 	//PSO(PipeLineStateObject)の生成
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC graphicsPipelineStateDesc{};
-	graphicsPipelineStateDesc.pRootSignature = rootSignature;  //RootSignature
+	graphicsPipelineStateDesc.pRootSignature = rs.Get();  //RootSignature
 	graphicsPipelineStateDesc.InputLayout = inputLayoutDesc;   //InputLayout
 	graphicsPipelineStateDesc.VS = {vs.GetDxcBlob()->GetBufferPointer(), vs.GetDxcBlob()->GetBufferSize()}; // vertexShader
 	graphicsPipelineStateDesc.PS = {ps.GetDxcBlob()->GetBufferPointer(), ps.GetDxcBlob()->GetBufferSize()}; // pixelShader
@@ -92,7 +78,7 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
 	graphicsPipelineStateDesc.SampleMask = D3D12_DEFAULT_SAMPLE_MASK;
 	//準備は整った。PSOを生成する
 	ID3D12PipelineState* graphicsPipeLineState = nullptr;
-	hr = dxCommon->GetDevice()->CreateGraphicsPipelineState(
+	HRESULT hr= dxCommon->GetDevice()->CreateGraphicsPipelineState(
 		&graphicsPipelineStateDesc,IID_PPV_ARGS(&graphicsPipeLineState));
 	assert(SUCCEEDED(hr));
 
@@ -147,7 +133,7 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
 
 
 		//コマンドを積む
-		commandList->SetGraphicsRootSignature(rootSignature);
+		commandList->SetGraphicsRootSignature(rs.Get());
 		commandList->SetPipelineState(graphicsPipeLineState);
 		commandList->IASetVertexBuffers(0, 1, &vertexBufferView);
 		//トポロジの設定
@@ -163,8 +149,8 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
 	// 解放処理
 	vertexResource->Release();
 	graphicsPipeLineState->Release();
-	rootSignature->Release();
-	signatureBlob->Release();
+	//rootSignature->Release();
+	//signatureBlob->Release();
 	KamataEngine::Finalize();
 	return 0;
 }

@@ -1,5 +1,5 @@
 #include "RootSignature.h"
-#include "KamataEngine.h"　//DirectXCommon
+#include "KamataEngine.h" //DirectXCommon
 
 using namespace KamataEngine;
 

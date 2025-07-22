@@ -8,6 +8,7 @@
 #include "PipelineState.h"
 #include "VertexBuffer.h"
 #include "IndexBuffer.h"
+#include "WorldTransformEx.h"
 
 using namespace KamataEngine;
 
@@ -220,6 +221,15 @@ VertexData vertices[] = {
 	//　複写体の準備
 	Model* model = Model::CreateFromOBJ("terrain");
 
+	WorldTransformEx worldTransform; // ワールド変形のインスタンスを生成
+	worldTransform.Initialize();     // ワールド変形の初期化
+	worldTransform.scale_ = Vector3(1.0f, 1.0f, 1.0f); // スケールを設定
+
+	//カメラの準備
+	Camera camera;
+	camera.Initialize(); // カメラの初期化
+	camera.translation_ = Vector3(0.0f, 1.0f, 0.0f); // カメラの位置を設定
+
 	// メインループ
 	while (true) {
 		// エンジンの更新
@@ -227,9 +237,12 @@ VertexData vertices[] = {
 			break;
 		}
 
+		// World変換行列の定数バッファへの転送
+		worldTransform.rotation_.y += 0.005f;
+		worldTransform.UpdateMatrix(); // ワールド変形の更新
 
-		// 描画開始
-		//dxCommon->PreDraw();
+		// cameraの更新と定数バッファへの転送
+		camera.UpdateMatrix(); // カメラの更新
 
 		// TransitionBarrierを SRV=>RTVに設定する
 		D3D12_RESOURCE_BARRIER barrier{};
@@ -270,6 +283,9 @@ VertexData vertices[] = {
 		commandList->ClearDepthStencilView(dsvHandleCPU, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
 		//描画
+		Model::PreDraw(commandList);
+		model->Draw(worldTransform, camera);
+		Model::PostDraw();
 
 		// TransitionBarrierを元に戻し、PixelShaerが扱えるようにする
 		barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION; // トランジションバリア
@@ -303,6 +319,8 @@ VertexData vertices[] = {
 	}
 
 	//解放
+	delete model;
+
 	renderTextureResource->Release(); // RenderTextureResourceの解放
 	srvDescriptorHeap->Release();     // SRV用のDescriptorHeapの解放
 	rtvDescriptorHeap->Release();     // RTV用のDescriptorHeapの解放

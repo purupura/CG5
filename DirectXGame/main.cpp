@@ -216,6 +216,9 @@ VertexData vertices[] = {
 	//vertexData[1] = { 0.0f,  0.5f, 0.0f, 1.0f};//上
 	//vertexData[2] =  {0.5f, -0.5f, 0.0f, 1.0f};//右下
 
+	//　アプリで利用する3Dモデル　==========================
+	//　複写体の準備
+	Model* model = Model::CreateFromOBJ("terrain");
 
 	// メインループ
 	while (true) {
